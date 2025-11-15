@@ -6,6 +6,7 @@ Tests for FSK modulation program
 import unittest
 import numpy as np
 import tempfile
+import shutil
 import os
 from pathlib import Path
 import sys
@@ -25,7 +26,6 @@ class TestFSKModem(unittest.TestCase):
     
     def tearDown(self):
         """Clean up temporary files."""
-        import shutil
         shutil.rmtree(self.temp_dir, ignore_errors=True)
     
     def test_encode_decode_simple(self):
@@ -112,7 +112,8 @@ class TestFSKModem(unittest.TestCase):
     
     def test_different_parameters(self):
         """Test with different modem parameters."""
-        modem = FSKModem(sample_rate=8000, baud_rate=300, 
+        # Use 8000 Hz sample rate with 400 baud (8000/400 = 20 samples per bit)
+        modem = FSKModem(sample_rate=8000, baud_rate=400, 
                         freq_low=1000, freq_high=2000)
         
         original_data = b"Custom params"
@@ -134,6 +135,24 @@ class TestFSKModem(unittest.TestCase):
             
             self.assertEqual(original_data, decoded_data,
                            f"Failed for byte value {byte_val:02x}")
+    
+    def test_parameter_validation(self):
+        """Test that invalid parameters raise errors."""
+        # Test invalid sample rate
+        with self.assertRaises(ValueError):
+            FSKModem(sample_rate=-1)
+        
+        # Test invalid baud rate
+        with self.assertRaises(ValueError):
+            FSKModem(baud_rate=0)
+        
+        # Test invalid frequencies
+        with self.assertRaises(ValueError):
+            FSKModem(freq_low=2000, freq_high=1000)
+        
+        # Test Nyquist violation
+        with self.assertRaises(ValueError):
+            FSKModem(sample_rate=1000, freq_high=2000)
 
 
 if __name__ == '__main__':

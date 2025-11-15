@@ -6,7 +6,6 @@ Converts arbitrary data to sound and back using FSK modulation.
 
 import numpy as np
 import wave
-import struct
 import argparse
 import sys
 from pathlib import Path
@@ -25,10 +24,22 @@ class FSKModem:
             freq_low: Frequency for bit 0 in Hz (default: 1200)
             freq_high: Frequency for bit 1 in Hz (default: 2400)
         """
+        if sample_rate <= 0:
+            raise ValueError("Sample rate must be positive")
+        if baud_rate <= 0:
+            raise ValueError("Baud rate must be positive")
+        if freq_low <= 0 or freq_high <= 0:
+            raise ValueError("Frequencies must be positive")
+        if freq_low >= freq_high:
+            raise ValueError("freq_low must be less than freq_high")
+        if sample_rate < 2 * max(freq_low, freq_high):
+            raise ValueError("Sample rate must be at least twice the highest frequency (Nyquist)")
+        
         self.sample_rate = sample_rate
         self.baud_rate = baud_rate
         self.freq_low = freq_low
         self.freq_high = freq_high
+        # Using integer division is fine - encoder and decoder both use the same value
         self.samples_per_bit = sample_rate // baud_rate
         
     def encode_to_audio(self, data):
